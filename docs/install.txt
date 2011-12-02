@@ -1,0 +1,27 @@
+Enhanced Selection Datatype
+---------------------------
+
+Installation instructions:
+
+- Unpack the archive
+
+- Place the 'enhancedselection2' folder in the 'extension' folder.
+
+- Open /settings/override/site.ini.append(.php) and add the enhancedselection
+  extension to the active extensions.
+
+  [ExtensionSettings]
+  ActiveExtensions[]=enhancedselection2
+
+
+*****************
+* ! IMPORTANT ! *
+*****************
+
+If you have used the previous version of the Enhanced Selection datatype,
+you need to do a bit more if you want to completely switch to this new version.
+
+The two version are not directly compatible and that is why they have a different
+datatype identifier. The 'updateenhancedselection.php' provided in the bin/php
+folder will take care of the update process. Run it from the root of the eZ Publish
+installation to make the switch.
