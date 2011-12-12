@@ -35,7 +35,7 @@ class SckEnhancedSelectionType extends eZDataType
     function SckEnhancedSelectionType()
     {
         $this->eZDataType( self::DATATYPESTRING,
-                           ezi18n( 'extension/sckenhancedselection/datatypes', 'Enhanced Selection 2', 'Datatype name' ),
+                           ezpI18n::tr( 'extension/sckenhancedselection/datatypes', 'Enhanced Selection 2', 'Datatype name' ),
                            array( 'serialize_supported' => true,
                                   'object_serialize_map' => array( 'data_text' => 'selection' )
                                 )
@@ -934,7 +934,7 @@ class SckEnhancedSelectionType extends eZDataType
                     case $isRequired === true and count( $selection ) == 0:
                     case $isRequired === true and count( $selection ) == 1 and empty( $selection[0] ):
                     {
-                        $contentObjectAttribute->setValidationError( ezi18n( 'extension/sckenhancedselection/datatypes',
+                        $contentObjectAttribute->setValidationError( ezpI18n::tr( 'extension/sckenhancedselection/datatypes',
                                                                              'This is a required field.' )
                                                                    );
                         return eZInputValidator::STATE_INVALID;
@@ -946,13 +946,13 @@ class SckEnhancedSelectionType extends eZDataType
         {
             if( $infoCollectionCheck === true and $isRequired === true and $classContent['is_multiselect'] == 1 )
             {
-                $contentObjectAttribute->setValidationError( ezi18n( 'extension/sckenhancedselection/datatypes',
+                $contentObjectAttribute->setValidationError( ezpI18n::tr( 'extension/sckenhancedselection/datatypes',
                                                                      'This is a required field.' )
                                                            );
             }
             else if( $infoCollectionCheck === true and $isRequired === true )
             {
-                $contentObjectAttribute->setValidationError( ezi18n( 'extension/sckenhancedselection/datatypes',
+                $contentObjectAttribute->setValidationError( ezpI18n::tr( 'extension/sckenhancedselection/datatypes',
                                                                      'No POST variable. Please check your configuration.' )
                                                            );
             }
