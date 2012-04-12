@@ -135,7 +135,7 @@ class SckEnhancedSelectionType extends eZDataType
         $xmlString = $classAttribute->attribute( self::CLASS_STORAGE_XML );
         $content = array();
 
-        $this->xmlToClassContent( $xmlString, $content );
+        $this->xmlToClassContent( $xmlString, $content, $classAttribute );
 
         $content['db_options'] = $this->getDbOptions( $content );
 
@@ -158,7 +158,7 @@ class SckEnhancedSelectionType extends eZDataType
 
         unset( $content['db_options'] ); // Make sure this can never slip into the database
 
-        $xmlString = $this->classContentToXml( $content );
+        $xmlString = $this->classContentToXml( $content, $classAttribute );
 
         $classAttribute->setAttribute( self::CLASS_STORAGE_XML, $xmlString );
     }
@@ -657,7 +657,7 @@ class SckEnhancedSelectionType extends eZDataType
 
         unset( $optionsNode );
 
-        $xmlString = $this->classContentToXml( $content );
+        $xmlString = $this->classContentToXml( $content, $classAttribute );
 
         $classAttribute->setAttribute( self::CLASS_STORAGE_XML, $xmlString );
     }
@@ -666,8 +666,17 @@ class SckEnhancedSelectionType extends eZDataType
 * HELPERS *
 **********/
 
-    function classContentToXml( $content )
+    function classContentToXml( $content, $classAttribute )
     {
+        //Getting previous content, to eventually merge other language names
+        //We use the id field of each option to link all language names, not the identifier field
+        //Note that at this point, for user comprehension, identifier and priority should be only editable in main class language but isn't blocked here.
+        $previousContent = array();
+        $this->xmlToClassContent( $classAttribute->attribute( self::CLASS_STORAGE_XML ), $previousContent, $classAttribute, true );
+        $multiLanguageNameById = self::getMultiLanguageNameById( $previousContent['options'] );
+        
+        $currentLocale = $this->currentLocale( $classAttribute );
+        
         $doc = new DOMDocument();
         $root = $doc->createElement( 'content' );
 
@@ -678,9 +687,16 @@ class SckEnhancedSelectionType extends eZDataType
             foreach( $content['options'] as $option )
             {
                 $optionNode = $doc->createElement( 'option' );
+                
+                $nameElementList = isset( $multiLanguageNameById[$option['id']] ) ? array_merge( $multiLanguageNameById[$option['id']], array( $currentLocale => $option['name'] ) ) : array( $currentLocale => $option['name'] );
+                foreach( $nameElementList as $nameLang => $nameValue )
+                {
+                    $nameNode = $doc->createElement( 'name', $nameValue);
+                    $nameNode->setAttribute( 'lang', $nameLang );
+                    $optionNode->appendChild( $nameNode );
+                }
 
                 $optionNode->setAttribute( 'id', $option['id'] );
-                $optionNode->setAttribute( 'name', $option['name'] );
                 $optionNode->setAttribute( 'identifier', $option['identifier']);
                 $optionNode->setAttribute( 'priority', $option['priority'] );
 
@@ -723,7 +739,7 @@ class SckEnhancedSelectionType extends eZDataType
         return $xml;
     }
 
-    function xmlToClassContent( $xmlString, &$content )
+    function xmlToClassContent( $xmlString, &$content, $classAttribute, $multiLanguage = false )
     {
         if( $xmlString != '')
         {
@@ -733,6 +749,7 @@ class SckEnhancedSelectionType extends eZDataType
 
             if( $dom )
             {
+                $currentLocale = $this->currentLocale( $classAttribute );
                 $optionsNode = $dom->getElementsByTagName( 'options' )->item(0);
                 $content['options'] = array();
 
@@ -742,8 +759,40 @@ class SckEnhancedSelectionType extends eZDataType
 
                     foreach( $children as $child )
                     {
+                        $name = '';
+                        $gotData = false;
+                        foreach( $child->childNodes as $subChild )
+                        {
+                            if ( $subChild->nodeName === 'name' )
+                            {
+                                $gotData = true;
+                                if ( $multiLanguage )
+                                {
+                                    if ( empty( $name ) )
+                                    {
+                                        $name = array();
+                                    }
+                                    $name[$subChild->getAttribute( 'lang' )] = $subChild->textContent;
+                                }
+                                elseif ( $subChild->getAttribute( 'lang' ) == $currentLocale )
+                                {
+                                    $name = $subChild->textContent;
+                                    break;
+                                }
+                            }
+                        }
+                        if ( !$gotData ) //Used only for backcompatibility with pre-multilanguage release content
+                        {
+                            $name = $child->getAttribute( 'name' );
+                            if ( $multiLanguage )
+                            {
+                                $initialLocale = $this->initialLocale( $classAttribute );
+                                $name = array( $initialLocale => $child->getAttribute( 'name' ) );
+                            }
+                        }
+                        
                         $content['options'][] = array( 'id' => $child->getAttribute( 'id' ),
-                                                       'name' => $child->getAttribute( 'name' ),
+                                                       'name' => $name,
                                                        'identifier' => $child->getAttribute( 'identifier' ),
                                                        'priority' => $child->getAttribute( 'priority' ) );
                     }
@@ -781,6 +830,7 @@ class SckEnhancedSelectionType extends eZDataType
                 $content['query'] = '';
             }
         }
+        eZDebug::writeDebug( $content['options'] );
     }
 
     function generateIdentifier( $name, $identifierArray = array() )
@@ -965,6 +1015,58 @@ class SckEnhancedSelectionType extends eZDataType
         }
 
         return eZInputValidator::STATE_ACCEPTED;
+    }
+    
+    /**
+     * Returns the most apropriate locale to display now
+     * @param eZContentClassAttribute $classAttribute
+     * @return string Locale code (for example "eng-GB")
+     */
+    protected function currentLocale( $classAttribute ) 
+    {
+        if ( $classAttribute->editLocale() )
+        {
+            return $classAttribute->editLocale();
+        }
+        
+        $tpl = eZTemplate::instance();
+        if ( $tpl->hasVariable( 'language_code' ) )
+        {
+            return $tpl->variable( 'language_code' );
+        }
+        
+        
+        $http = eZHTTPTool::instance();
+        if ( $http->hasPostVariable( 'EditLanguage' ) )
+        {
+            return $http->postVariable( 'EditLanguage' );
+        }
+        
+        
+        $ini = eZINI::instance();
+        return $ini->variable( 'RegionalSettings', 'ContentObjectLocale' );
+    }
+    
+    protected function initialLocale( $classAttribute )
+    {
+        $class = eZContentClass::fetch( $classAttribute->attribute( 'contentclass_id' ) );
+        $localeObject = eZContentLanguage::fetch( $class->attribute( 'initial_language_id' ) );
+        return $localeObject->attribute( 'locale' );
+    }
+    
+    /**
+     * Return a simple 'option id' => 'option multilanguage names' associative array from a multilanguage options structure
+     * @param array $contentOptionList
+     * @return array
+     */
+    protected static function getMultiLanguageNameById( $contentOptionList ) 
+    {
+        $return = array();
+        foreach( $contentOptionList as $contentOption )
+        {
+            $return[$contentOption['id']] = $contentOption['name'];
+        }
+        return $return;
     }
 }
 
