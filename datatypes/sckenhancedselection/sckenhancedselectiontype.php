@@ -1134,7 +1134,10 @@ class SckEnhancedSelectionType extends eZDataType
         {
             return $tpl->variable( 'language_code' );
         }
-        
+        if ( $tpl->hasVariable( 'edit_language' ) )
+        {
+            return $tpl->variable( 'edit_language' );
+        }
         
         $http = eZHTTPTool::instance();
         if ( $http->hasPostVariable( 'EditLanguage' ) )
