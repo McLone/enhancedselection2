@@ -930,6 +930,13 @@ class SckEnhancedSelectionType extends eZDataType
                 $content['query'] = '';
             }
         }
+        else
+        {
+            $content['options'] = array();
+            $content['is_multiselect'] = 0;
+            $content['delimiter'] = '';
+            $content['query'] = '';
+        }
     }
 
     function generateIdentifier( $name, $identifierArray = array() )
