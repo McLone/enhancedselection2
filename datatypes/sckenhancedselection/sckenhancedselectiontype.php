@@ -670,10 +670,9 @@ class SckEnhancedSelectionType extends eZDataType
     {
         //Getting previous content, to eventually merge other language names
         //We use the id field of each option to link all language names, not the identifier field
-        //Note that at this point, for user comprehension, identifier and priority should be only editable in main class language but isn't blocked here.
-        $previousContent = array();
-        $this->xmlToClassContent( $classAttribute->attribute( self::CLASS_STORAGE_XML ), $previousContent, $classAttribute, true );
-        $multiLanguageNameById = self::getMultiLanguageNameById( $previousContent['options'] );
+        $previousMultiLanguageContent = array();
+        $this->xmlToClassContent( $classAttribute->attribute( self::CLASS_STORAGE_XML ), $previousMultiLanguageContent, $classAttribute, true );
+        $multiLanguageNameById = self::getMultiLanguageNameById( $previousMultiLanguageContent['options'] );
         
         $currentLocale = $this->currentLocale( $classAttribute );
         
@@ -688,8 +687,8 @@ class SckEnhancedSelectionType extends eZDataType
             {
                 $optionNode = $doc->createElement( 'option' );
                 
-                $nameElementList = isset( $multiLanguageNameById[$option['id']] ) ? array_merge( $multiLanguageNameById[$option['id']], array( $currentLocale => $option['name'] ) ) : array( $currentLocale => $option['name'] );
-                foreach( $nameElementList as $nameLang => $nameValue )
+                $nameByLangList = isset( $multiLanguageNameById[$option['id']] ) ? array_merge( $multiLanguageNameById[$option['id']], array( $currentLocale => $option['name'] ) ) : array( $currentLocale => $option['name'] );
+                foreach( $nameByLangList as $nameLang => $nameValue )
                 {
                     $nameNode = $doc->createElement( 'name', $nameValue);
                     $nameNode->setAttribute( 'lang', $nameLang );
@@ -727,9 +726,14 @@ class SckEnhancedSelectionType extends eZDataType
         // DB Query
         if( isset( $content['query'] ) )
         {
-            $queryElement = $doc->createElement('query');
-            $queryElement->appendChild( $doc->createCDATASection( $content['query'] ) );
-            $root->appendChild( $queryElement );
+            $queryByLangList = ( isset( $previousMultiLanguageContent['query'] ) && is_array( $previousMultiLanguageContent['query'] ) ) ? array_merge( $previousMultiLanguageContent['query'], array( $currentLocale => $content['query'] ) ) : array( $currentLocale => $content['query'] );
+            foreach( $queryByLangList as $queryLang => $queryValue )
+            {
+                $queryElement = $doc->createElement('query');
+                $queryElement->setAttribute( 'lang', $queryLang );
+                $queryElement->appendChild( $doc->createCDATASection( $queryValue ) );
+                $root->appendChild( $queryElement );
+            }
         }
 
         $doc->appendChild( $root );
@@ -750,6 +754,7 @@ class SckEnhancedSelectionType extends eZDataType
             if( $dom )
             {
                 $currentLocale = $this->currentLocale( $classAttribute );
+                $initialLocale = $this->initialLocale( $classAttribute );
                 $optionsNode = $dom->getElementsByTagName( 'options' )->item(0);
                 $content['options'] = array();
 
@@ -760,12 +765,13 @@ class SckEnhancedSelectionType extends eZDataType
                     foreach( $children as $child )
                     {
                         $name = '';
-                        $gotData = false;
-                        foreach( $child->childNodes as $subChild )
+                        $nameNodeList = $child->getElementsByTagName( 'name' );
+                        if ( $nameNodeList->length > 0 )
                         {
-                            if ( $subChild->nodeName === 'name' )
+                            $initialLocaleName = '';
+                            $foundCurrentLocale = false;
+                            foreach( $nameNodeList as $subChild )
                             {
-                                $gotData = true;
                                 if ( $multiLanguage )
                                 {
                                     if ( empty( $name ) )
@@ -774,19 +780,30 @@ class SckEnhancedSelectionType extends eZDataType
                                     }
                                     $name[$subChild->getAttribute( 'lang' )] = $subChild->textContent;
                                 }
-                                elseif ( $subChild->getAttribute( 'lang' ) == $currentLocale )
+                                else
                                 {
-                                    $name = $subChild->textContent;
-                                    break;
+                                    if ( $subChild->getAttribute( 'lang' ) == $currentLocale )
+                                    {
+                                        $foundCurrentLocale = true;
+                                        $name = $subChild->textContent;
+                                        break;
+                                    }
+                                    if ( $subChild->getAttribute( 'lang' ) == $initialLocale )
+                                    {
+                                        $initialLocaleName = $subChild->textContent;
+                                    }
                                 }
                             }
+                            if ( !$multiLanguage && !$foundCurrentLocale )
+                            {
+                                $name = $initialLocaleName;
+                            }
                         }
-                        if ( !$gotData ) //Used only for backcompatibility with pre-multilanguage release content
+                        else //Used only for backcompatibility with pre-multilanguage release content
                         {
                             $name = $child->getAttribute( 'name' );
                             if ( $multiLanguage )
                             {
-                                $initialLocale = $this->initialLocale( $classAttribute );
                                 $name = array( $initialLocale => $child->getAttribute( 'name' ) );
                             }
                         }
@@ -814,12 +831,32 @@ class SckEnhancedSelectionType extends eZDataType
                     $content['delimiter'] = $delimiterNode->nodeValue;
                 }
 
-                $queryNode = $dom->getElementsByTagName( 'query' )->item(0);
                 $content['query'] = '';
-
-                if( $queryNode instanceof DomElement )
+                $initialLocaleQuery = '';
+                $foundCurrentLocale = false;
+                foreach( $dom->getElementsByTagName( 'query' ) as $queryNode )
                 {
-                    $content['query'] = trim( $queryNode->nodeValue );
+                    if ( $multiLanguage )
+                    {
+                        $content['query'][$queryNode->hasAttribute( 'lang' ) ? $queryNode->getAttribute( 'lang' ) : $initialLocale] = $queryNode->nodeValue;
+                    }
+                    else
+                    {
+                        if ( $queryNode->getAttribute( 'lang' ) == $currentLocale )
+                        {
+                            $foundCurrentLocale = true;
+                            $content['query'] = $queryNode->nodeValue;
+                            break;
+                        }
+                        if ( !$queryNode->hasAttribute( 'lang' ) || $queryNode->getAttribute( 'lang' ) == $initialLocale )
+                        {
+                            $initialLocaleQuery = $queryNode->nodeValue;
+                        }
+                    }
+                }
+                if ( !$multiLanguage && !$foundCurrentLocale )
+                {
+                    $content['query'] = $initialLocaleQuery;
                 }
             }
             else
@@ -830,7 +867,6 @@ class SckEnhancedSelectionType extends eZDataType
                 $content['query'] = '';
             }
         }
-        eZDebug::writeDebug( $content['options'] );
     }
 
     function generateIdentifier( $name, $identifierArray = array() )
@@ -1018,9 +1054,10 @@ class SckEnhancedSelectionType extends eZDataType
     }
     
     /**
-     * Returns the most apropriate locale to display now
+     * Try to returns the most apropriate locale to display now.
      * @param eZContentClassAttribute $classAttribute
      * @return string Locale code (for example "eng-GB")
+     * @todo The "guess" mechanism is a little dirty right now : it's pretty hard to get the right context in every case... 
      */
     protected function currentLocale( $classAttribute ) 
     {
