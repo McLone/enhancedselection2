@@ -586,7 +586,8 @@ class SckEnhancedSelectionType extends eZDataType
 
     function serializeContentClassAttribute( $classAttribute, $attributeNode, $attributeParametersNode )
     {
-        $content = $classAttribute->content();
+        $content = array();
+        $this->xmlToClassContent( $classAttribute->attribute( self::CLASS_STORAGE_XML ), $content, $classAttribute, true );
 
         $dom = $attributeParametersNode->ownerDocument;
         $optionsNode = $dom->createElement('options');
@@ -598,10 +599,16 @@ class SckEnhancedSelectionType extends eZDataType
                 $optionNode = $dom->createElement('option');
 
                 $optionNode->setAttribute( 'id', $option['id']  );
-                $optionNode->setAttribute( 'name', $option['name'] );
                 $optionNode->setAttribute( 'identifier', $option['identifier']);
                 $optionNode->setAttribute( 'priority', $option['priority']  );
-
+                
+                foreach( $option['name'] as $nameLang => $nameValue )
+                {
+                    $nameNode = $dom->createElement( 'name', $nameValue );
+                    $nameNode->setAttribute( 'lang', $nameLang );
+                    $optionNode->appendChild( $nameNode );
+                }
+                
                 $optionsNode->appendChild( $optionNode );
 
                 unset( $optionNode );
@@ -612,9 +619,13 @@ class SckEnhancedSelectionType extends eZDataType
         $delimiterElement->appendChild( $dom->createCDATASection( $content['delimiter'] ) );
         $attributeParametersNode->appendChild( $delimiterElement );
         $attributeParametersNode->appendChild( $dom->createElement( 'multiselect', $content['is_multiselect'] ) );
-        $queryElement = $dom->createElement('query');
-        $queryElement->appendChild( $dom->createCDATASection( $content['query'] ) );
-        $attributeParametersNode->appendChild( $queryElement );
+        foreach ( $content['query'] as $queryLang => $queryValue )
+        {
+            $queryElement = $dom->createElement('query');
+            $queryElement->setAttribute( 'lang', $queryLang );
+            $queryElement->appendChild( $dom->createCDATASection( $queryValue ) );
+            $attributeParametersNode->appendChild( $queryElement );
+        }
         $attributeParametersNode->appendChild( $optionsNode );
 
         unset( $optionsNode );
@@ -624,13 +635,19 @@ class SckEnhancedSelectionType extends eZDataType
     {
         $content = array();
 
+        $initialLanguage = $this->initialLocale( $classAttribute );
+        
         $delimiter = $attributeParametersNode->getElementsByTagName( 'delimiter' )->item(0)->nodeValue;
         $multiselect = $attributeParametersNode->getElementsByTagName( 'multiselect' )->item(0)->textContent;
-        $query = $attributeParametersNode->getElementsByTagName( 'query' )->item(0)->nodeValue;
+        $query = array();
+        foreach( $attributeParametersNode->getElementsByTagName( 'query' ) as $queryNode )
+        {
+            $query[$queryNode->hasAttribute( 'lang' ) ? $queryNode->getAttribute( 'lang' ) : $initialLanguage ] = $queryNode->nodeValue;
+        }
 
         $content['delimiter'] = $delimiter !== false ? $delimiter : '';
         $content['is_multiselect'] = $multiselect !== false ? intval( $multiselect ) : 0;
-        $content['query'] = $query !== false ? $query : '';
+        $content['query'] = $query !== false ? $query : array();
         $content['options'] = array();
 
         $optionsNode = $attributeParametersNode->getElementsByTagName( 'options' )->item(0);
@@ -647,8 +664,21 @@ class SckEnhancedSelectionType extends eZDataType
             {
                 if( $child instanceof DomElement)
                 {
+                $name = array();
+                $nameNodeList = $child->getElementsByTagName( 'name' );
+                if ( $nameNodeList->length == 0 ) //Used only for backcompatibility with pre-multilanguage release content
+                {
+                    $name[$initialLanguage] = $child->getAttribute( 'name' );
+                }
+                else
+                {
+                    foreach( $nameNodeList as $nameNode )
+                    {
+                        $name[$nameNode->getAttribute( 'lang' )] = $nameNode->textContent;
+                    }
+                }
                 $content['options'][] = array( 'id' => $child->getAttribute('id'),
-                                               'name' => $child->getAttribute( 'name' ),
+                                               'name' => $name,
                                                'identifier' => $child->getAttribute( 'identifier' ),
                                                'priority' => $child->getAttribute( 'priority' ) );
                 }
@@ -657,7 +687,7 @@ class SckEnhancedSelectionType extends eZDataType
 
         unset( $optionsNode );
 
-        $xmlString = $this->classContentToXml( $content, $classAttribute );
+        $xmlString = $this->classContentToXml( $content, $classAttribute, true );
 
         $classAttribute->setAttribute( self::CLASS_STORAGE_XML, $xmlString );
     }
@@ -666,13 +696,32 @@ class SckEnhancedSelectionType extends eZDataType
 * HELPERS *
 **********/
 
-    function classContentToXml( $content, $classAttribute )
+    /**
+     * Convert a content given as an associative array to an XML for our class storage
+     * @param array $content
+     * @param eZContentClassAttribute $classAttribute 
+     * @param [optional]bool $multiLanguage   If set to true, the content array contains all language for its "name" 
+     *                                        and "query" fields (as an associative array : 'language code' => 'value'),
+     *                                        the previously stored content is ignored and replaced by our content array
+     *                                        ; if set to false (default), content only contains current language for 
+     *                                        this fields, content array is merged to the previously stored content, 
+     *                                        allowing to keep other translation stored.
+     * @return string
+     */
+    function classContentToXml( $content, $classAttribute, $multiLanguage = false )
     {
         //Getting previous content, to eventually merge other language names
-        //We use the id field of each option to link all language names, not the identifier field
+        //We use the id field of each option to link all language names, not the identifier field wich can be modified anytime
         $previousMultiLanguageContent = array();
-        $this->xmlToClassContent( $classAttribute->attribute( self::CLASS_STORAGE_XML ), $previousMultiLanguageContent, $classAttribute, true );
-        $multiLanguageNameById = self::getMultiLanguageNameById( $previousMultiLanguageContent['options'] );
+        $multiLanguageNameById = array();
+        if ( !$multiLanguage ) //Actually, it's unnecessary for the multilanguage case, as we overwrite it anyway
+        {
+            $this->xmlToClassContent( $classAttribute->attribute( self::CLASS_STORAGE_XML ), $previousMultiLanguageContent, $classAttribute, true );
+            if ( isset( $previousMultiLanguageContent['options'] ) )
+            {
+                $multiLanguageNameById = self::getMultiLanguageNameById( $previousMultiLanguageContent['options'] );
+            }
+        }
         
         $currentLocale = $this->currentLocale( $classAttribute );
         
@@ -687,7 +736,14 @@ class SckEnhancedSelectionType extends eZDataType
             {
                 $optionNode = $doc->createElement( 'option' );
                 
-                $nameByLangList = isset( $multiLanguageNameById[$option['id']] ) ? array_merge( $multiLanguageNameById[$option['id']], array( $currentLocale => $option['name'] ) ) : array( $currentLocale => $option['name'] );
+                if ( $multiLanguage )
+                {
+                    $nameByLangList = $option['name'];
+                }
+                else
+                {
+                    $nameByLangList = isset( $multiLanguageNameById[$option['id']] ) ? array_merge( $multiLanguageNameById[$option['id']], array( $currentLocale => $option['name'] ) ) : array( $currentLocale => $option['name'] );
+                }
                 foreach( $nameByLangList as $nameLang => $nameValue )
                 {
                     $nameNode = $doc->createElement( 'name', $nameValue);
@@ -726,7 +782,14 @@ class SckEnhancedSelectionType extends eZDataType
         // DB Query
         if( isset( $content['query'] ) )
         {
-            $queryByLangList = ( isset( $previousMultiLanguageContent['query'] ) && is_array( $previousMultiLanguageContent['query'] ) ) ? array_merge( $previousMultiLanguageContent['query'], array( $currentLocale => $content['query'] ) ) : array( $currentLocale => $content['query'] );
+            if ( $multiLanguage )
+            {
+                $queryByLangList = $content['query'];
+            }
+            else
+            {
+                $queryByLangList = ( isset( $previousMultiLanguageContent['query'] ) && is_array( $previousMultiLanguageContent['query'] ) ) ? array_merge( $previousMultiLanguageContent['query'], array( $currentLocale => $content['query'] ) ) : array( $currentLocale => $content['query'] );
+            }
             foreach( $queryByLangList as $queryLang => $queryValue )
             {
                 $queryElement = $doc->createElement('query');
