@@ -97,6 +97,9 @@ Please read install.txt
 
 * v3.0:
     - PHP5 port
+    
+* Fork by Marc Sallaberremborde (marc.salla@infostrates.fr) "v4.0":
+    - Multilanguage support
 
 
 6. Disclaimer & Copyright

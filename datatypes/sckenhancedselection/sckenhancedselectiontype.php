@@ -432,6 +432,11 @@ class SckEnhancedSelectionType extends eZDataType
 
         $selectionName = join( '_', array( $base, 'sckenhancedselection_selection', $id ) );
         $selection = $http->postVariable( $selectionName );
+        $collectedField  = 'identifier';
+        if ( strtolower( eZINI::instance( 'enhancedselection2.ini' )->variable( 'Settings', 'UseNameFieldAsCollectedValue' ) ) == 'true' )
+        {
+            $collectedField  = 'name';
+        }
 
         if( $http->hasPostVariable( $selectionName ) )
         {
@@ -451,7 +456,7 @@ class SckEnhancedSelectionType extends eZDataType
                 {
                     if( in_array( $option['identifier'], $selection ) )
                     {
-                        $nameArray[] = $option['name'];
+                        $nameArray[] = $option[$collectedField];
                     }
                 }
 
