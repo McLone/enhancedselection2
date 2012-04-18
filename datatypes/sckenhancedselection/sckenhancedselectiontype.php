@@ -1164,7 +1164,7 @@ class SckEnhancedSelectionType extends eZDataType
     
     protected function initialLocale( $classAttribute )
     {
-        $class = eZContentClass::fetch( $classAttribute->attribute( 'contentclass_id' ) );
+        $class = eZContentClass::fetch( $classAttribute->attribute( 'contentclass_id' ), true, array( array( eZContentClass::VERSION_STATUS_DEFINED, eZContentClass::VERSION_STATUS_MODIFIED, eZContentClass::VERSION_STATUS_TEMPORARY ) ) );
         $localeObject = eZContentLanguage::fetch( $class->attribute( 'initial_language_id' ) );
         return $localeObject->attribute( 'locale' );
     }
