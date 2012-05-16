@@ -1142,7 +1142,7 @@ class SckEnhancedSelectionType extends eZDataType
         }
         
         $tpl = eZTemplate::instance();
-        if ( $tpl->hasVariable( 'language_code' ) )
+        if ( $tpl->hasVariable( 'language_code' ) && $tpl->variable( 'language_code' ) )
         {
             return $tpl->variable( 'language_code' );
         }
