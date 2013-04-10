@@ -411,6 +411,18 @@ class SckEnhancedSelectionType extends eZDataType
     function customObjectAttributeHTTPAction( $http, $action, $objectAttribute, $parameters )
     {
     }
+    
+    function fromString($objectAttribute, $string)
+    {
+        $content = explode( ';', $string );
+        $objectAttribute->setContent( $content );
+    }
+    
+    function toString($objectAttribute)
+    {
+        $array = $objectAttribute->content();
+        return implode( ';', $array );
+    }
 
 /*************
 * COLLECTION *
