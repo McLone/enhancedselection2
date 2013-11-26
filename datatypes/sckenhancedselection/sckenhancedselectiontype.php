@@ -48,22 +48,6 @@ class SckEnhancedSelectionType extends eZDataType
 
     function validateClassAttributeHTTPInput( $http, $base, $classAttribute )
     {
-        $id = $classAttribute->attribute( 'id' );
-        $queryName = join( '_', array( $base, 'sckenhancedselection_query', $id ) );
-
-        if( $http->hasPostvariable( $queryName ) )
-        {
-            $query = trim( $http->postVariable( $queryName ) );
-
-            if( !empty( $query ) )
-            {
-                if( $this->isDbQueryValid( $query ) !== true )
-                {
-                    return eZInputValidator::STATE_INVALID;
-                }
-            }
-        }
-
         return eZInputValidator::STATE_ACCEPTED;
     }
 
