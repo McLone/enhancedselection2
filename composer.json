@@ -1,5 +1,5 @@
 {
-    "name": "iamtankist/enhancedselection2",
+    "name": "iamtankist/enhancedselection",
     "description": "The Enhanced Selection type was initially based on the standard eZ publish Selection ('ezselection') datatype. It's original intent was to provide the same functionality as the standard datatype, but store an identifier instead of an id in the contentobject attribute.",
     "type": "ezpublish-legacy-extension",
     "license": "GPL-3.0",
