@@ -2,7 +2,7 @@
 /*
 
 [ExtensionSettings]
-DesignExtensions[]=enhancedselection2
+DesignExtensions[]=enhancedselection
 
 */
 ?>
