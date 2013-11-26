@@ -1,32 +1,5 @@
 <?php
 
-/*
-    Enhanced Selection extension for eZ publish 4.x
-    Copyright (C) 2003-2008  SCK-CEN (Belgian Nuclear Research Centre)
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-*/
-
-
-/*!
-  \class   SckEnhancedSelectionType sckenhancedselectiontype.php
-  \ingroup eZDatatype
-  \brief   Handles the datatype sckenhancedselection.
-  \version 3.0
-  \date    Tuesday 16 August 2005 9:56:00 am
-  \author  Original Hans Melis, ported to PHP5 by Tom Couwberghs
-*/
-
-include_once( 'kernel/common/i18n.php' );
-
 class SckEnhancedSelectionType extends eZDataType
 {
     const DATATYPESTRING = 'sckenhancedselection';
@@ -48,7 +21,7 @@ class SckEnhancedSelectionType extends eZDataType
 
     function validateClassAttributeHTTPInput( $http, $base, $classAttribute )
     {
-        return eZInputValidator::STATE_ACCEPTED;
+        return eZInputValidator::STATE_ACCEPTED; 
     }
 
     function fetchClassAttributeHTTPInput( $http, $base, $classAttribute )
@@ -63,8 +36,6 @@ class SckEnhancedSelectionType extends eZDataType
 
         $multiSelectName = join( '_', array( $base, 'sckenhancedselection_multi', $id ) );
         $delimiterName = join( '_', array( $base, 'sckenhancedselection_delimiter', $id ) );
-
-        $queryName = join( '_', array( $base, 'sckenhancedselection_query', $id ) );
 
         if( $http->hasPostVariable( $idArrayName ) )
         {
@@ -103,11 +74,6 @@ class SckEnhancedSelectionType extends eZDataType
             $content['delimiter'] = $http->postVariable( $delimiterName );
         }
 
-        if( $http->hasPostVariable( $queryName ) )
-        {
-            $content['query'] = trim( $http->postVariable( $queryName ) );
-        }
-
         $classAttribute->setContent( $content );
         $classAttribute->store();
 
@@ -121,26 +87,12 @@ class SckEnhancedSelectionType extends eZDataType
 
         $this->xmlToClassContent( $xmlString, $content, $classAttribute );
 
-        $content['db_options'] = $this->getDbOptions( $content );
-
-        $queryName = join( '_', array( 'ContentClass_sckenhancedselection_query', $classAttribute->attribute( 'id' ) ) );
-        $http = eZHTTPTool::instance();
-
-        if( empty( $content['query'] ) and
-            $http->hasPostVariable( $queryName ) )
-        {
-            $query = $http->postVariable( $queryName );
-            $content['query'] = $query;
-        }
-
         return $content;
     }
 
     function storeClassAttribute( $classAttribute, $version )
     {
         $content = $classAttribute->content();
-
-        unset( $content['db_options'] ); // Make sure this can never slip into the database
 
         $xmlString = $this->classContentToXml( $content, $classAttribute );
 
@@ -442,12 +394,6 @@ class SckEnhancedSelectionType extends eZDataType
             {
                 $options = $classContent['options'];
 
-                if( isset( $classContent['db_options'] ) and count( $classContent['db_options'] ) > 0 )
-                {
-                    unset( $options );
-                    $options = $classContent['db_options'];
-                }
-
                 foreach( $options as $option )
                 {
                     if( in_array( $option['identifier'], $selection ) )
@@ -493,12 +439,6 @@ class SckEnhancedSelectionType extends eZDataType
             $metaDataArray = array();
             $options = $classContent['options'];
 
-            if( isset( $classContent['db_options'] ) and count( $classContent['db_options'] ) > 0 )
-            {
-                unset( $options );
-                $options = $classContent['db_options'];
-            }
-
             foreach( $options as $option )
             {
                 if( in_array( $option['identifier'], $content ) )
@@ -528,12 +468,6 @@ class SckEnhancedSelectionType extends eZDataType
         if( count( $content ) > 0 )
         {
             $options = $classContent['options'];
-
-            if( isset( $classContent['db_options'] ) and count( $classContent['db_options'] ) > 0 )
-            {
-                unset( $options );
-                $options = $classContent['db_options'];
-            }
 
             foreach( $options as $option )
             {
@@ -620,13 +554,7 @@ class SckEnhancedSelectionType extends eZDataType
         $delimiterElement->appendChild( $dom->createCDATASection( $content['delimiter'] ) );
         $attributeParametersNode->appendChild( $delimiterElement );
         $attributeParametersNode->appendChild( $dom->createElement( 'multiselect', $content['is_multiselect'] ) );
-        foreach ( $content['query'] as $queryLang => $queryValue )
-        {
-            $queryElement = $dom->createElement('query');
-            $queryElement->setAttribute( 'lang', $queryLang );
-            $queryElement->appendChild( $dom->createCDATASection( $queryValue ) );
-            $attributeParametersNode->appendChild( $queryElement );
-        }
+        
         $attributeParametersNode->appendChild( $optionsNode );
 
         unset( $optionsNode );
@@ -640,22 +568,14 @@ class SckEnhancedSelectionType extends eZDataType
         
         $delimiter = $attributeParametersNode->getElementsByTagName( 'delimiter' )->item(0)->nodeValue;
         $multiselect = $attributeParametersNode->getElementsByTagName( 'multiselect' )->item(0)->textContent;
-        $query = array();
-        foreach( $attributeParametersNode->getElementsByTagName( 'query' ) as $queryNode )
-        {
-            $query[$queryNode->hasAttribute( 'lang' ) ? $queryNode->getAttribute( 'lang' ) : $initialLanguage ] = $queryNode->nodeValue;
-        }
 
         $content['delimiter'] = $delimiter !== false ? $delimiter : '';
         $content['is_multiselect'] = $multiselect !== false ? intval( $multiselect ) : 0;
-        $content['query'] = $query !== false ? $query : array();
         $content['options'] = array();
 
         $optionsNode = $attributeParametersNode->getElementsByTagName( 'options' )->item(0);
 
         $dom = $optionsNode->ownerDocument;
-
-
 
         if( $optionsNode instanceof DomElement && $optionsNode->hasChildNodes() === true )
         {
@@ -780,26 +700,6 @@ class SckEnhancedSelectionType extends eZDataType
             $root->appendChild( $delimiterElement );
         }
 
-        // DB Query
-        if( isset( $content['query'] ) )
-        {
-            if ( $multiLanguage )
-            {
-                $queryByLangList = $content['query'];
-            }
-            else
-            {
-                $queryByLangList = ( isset( $previousMultiLanguageContent['query'] ) && is_array( $previousMultiLanguageContent['query'] ) ) ? array_merge( $previousMultiLanguageContent['query'], array( $currentLocale => $content['query'] ) ) : array( $currentLocale => $content['query'] );
-            }
-            foreach( $queryByLangList as $queryLang => $queryValue )
-            {
-                $queryElement = $doc->createElement('query');
-                $queryElement->setAttribute( 'lang', $queryLang );
-                $queryElement->appendChild( $doc->createCDATASection( $queryValue ) );
-                $root->appendChild( $queryElement );
-            }
-        }
-
         $doc->appendChild( $root );
 
         $xml = $doc->saveXML();
@@ -894,41 +794,12 @@ class SckEnhancedSelectionType extends eZDataType
                 {
                     $content['delimiter'] = $delimiterNode->nodeValue;
                 }
-
-                $content['query'] = '';
-                $initialLocaleQuery = '';
-                $foundCurrentLocale = false;
-                foreach( $dom->getElementsByTagName( 'query' ) as $queryNode )
-                {
-                    if ( $multiLanguage )
-                    {
-                        $content['query'][$queryNode->hasAttribute( 'lang' ) ? $queryNode->getAttribute( 'lang' ) : $initialLocale] = $queryNode->nodeValue;
-                    }
-                    else
-                    {
-                        if ( $queryNode->getAttribute( 'lang' ) == $currentLocale )
-                        {
-                            $foundCurrentLocale = true;
-                            $content['query'] = $queryNode->nodeValue;
-                            break;
-                        }
-                        if ( !$queryNode->hasAttribute( 'lang' ) || $queryNode->getAttribute( 'lang' ) == $initialLocale )
-                        {
-                            $initialLocaleQuery = $queryNode->nodeValue;
-                        }
-                    }
-                }
-                if ( !$multiLanguage && !$foundCurrentLocale )
-                {
-                    $content['query'] = $initialLocaleQuery;
-                }
             }
             else
             {
                 $content['options'] = array();
                 $content['is_multiselect'] = 0;
                 $content['delimiter'] = '';
-                $content['query'] = '';
             }
         }
         else
@@ -936,7 +807,6 @@ class SckEnhancedSelectionType extends eZDataType
             $content['options'] = array();
             $content['is_multiselect'] = 0;
             $content['delimiter'] = '';
-            $content['query'] = '';
         }
     }
 
@@ -1021,51 +891,6 @@ class SckEnhancedSelectionType extends eZDataType
             $postVar[$highest] = $postVar[$lowest];
             $postVar[$lowest] = $tmp;
         }
-    }
-
-    function isDbQueryValid( $sql )
-    {
-        $db = eZDB::instance();
-        $isValid = false;
-
-        $res = $db->arrayQuery( $sql, array( 'limit' => 1 ) );
-
-        if( is_array( $res ) and count( $res ) == 1 )
-        {
-            if( isset( $res[0]['name'] ) and isset( $res[0]['identifier'] ) )
-            {
-                $isValid = true;
-            }
-        }
-
-        return $isValid;
-    }
-
-    function getDbOptions( $classContent )
-    {
-        $ret = array();
-
-        if( isset( $classContent['query'] ) and
-            !empty( $classContent['query'] ) and
-            $this->isDbQueryValid( $classContent['query'] ) === true )
-        {
-            $db = eZDB::instance();
-            $res = $db->arrayQuery( $classContent['query'] );
-
-            if( is_array( $res ) and count( $res ) > 0 )
-            {
-                if( $classContent['is_multiselect'] == 0 )
-                {
-                    $ret = array_merge( array( array( 'name' => '', 'identifier' => '' ) ), $res );
-                }
-                else
-                {
-                    $ret = $res;
-                }
-            }
-        }
-
-        return $ret;
     }
 
     function validateAttributeHTTPInput( $http, $base, $contentObjectAttribute, $isInformationCollection = false )

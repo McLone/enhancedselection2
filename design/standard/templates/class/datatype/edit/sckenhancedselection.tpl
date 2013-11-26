@@ -118,12 +118,4 @@
     
     <div class="break"></div>
 </div>
-
-<div class="block">
-    <label>{"Database query"|i18n($i18n_context)}:</label>
-    <textarea rows="5"
-              cols="80"
-              name="ContentClass_sckenhancedselection_query_{$id}">{$content.query|wash}</textarea>
-</div>       
-     
 {/let}     

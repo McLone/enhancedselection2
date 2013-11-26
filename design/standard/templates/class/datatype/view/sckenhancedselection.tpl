@@ -31,10 +31,4 @@
     
     <div class="break"></div>
 </div>
-
-<div class="block">
-    <label>{"Database query"|i18n($i18n_context)}:</label>
-    <p>{$content.query|wash|nl2br}</p>
-</div>
-     
 {/let}     
