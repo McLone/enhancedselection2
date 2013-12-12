@@ -897,7 +897,7 @@ class EnhancedSelectionType extends eZDataType
 
         $isRequired = $contentObjectAttribute->validateIsRequired();
 
-        $selectionName = join( '_', array( $base, 'sckenhancedselection_selection', $id ) );
+        $selectionName = join( '_', array( $base, 'enhancedselection_selection', $id ) );
 
         if( $http->hasPostVariable( $selectionName ) )
         {
