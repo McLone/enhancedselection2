@@ -5,13 +5,13 @@ Installation instructions:
 
 - Unpack the archive
 
-- Place the 'enhancedselection2' folder in the 'extension' folder.
+- Place the 'enhancedselection' folder in the 'extension' folder.
 
 - Open /settings/override/site.ini.append(.php) and add the enhancedselection
   extension to the active extensions.
 
   [ExtensionSettings]
-  ActiveExtensions[]=enhancedselection2
+  ActiveExtensions[]=enhancedselection
 
 
 *****************
@@ -21,7 +21,7 @@ Installation instructions:
 Note that if you update this datatype from a version < v4.0 and you made your own 
 template for this datatype, its default behavior has changed : collected value isn't 
 "Name" field anymore but the "Identifier" field. To get the previous behavior, you can
-change ezhancedselection2.ini.php to set :
+change ezhancedselection.ini.php to set :
 [Settings]
 UseNameFieldAsCollectedValue=true
 

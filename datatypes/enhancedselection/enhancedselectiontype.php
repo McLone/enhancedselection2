@@ -1,41 +1,14 @@
 <?php
 
-/*
-    Enhanced Selection extension for eZ publish 4.x
-    Copyright (C) 2003-2008  SCK-CEN (Belgian Nuclear Research Centre)
-
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-*/
-
-
-/*!
-  \class   SckEnhancedSelectionType sckenhancedselectiontype.php
-  \ingroup eZDatatype
-  \brief   Handles the datatype sckenhancedselection.
-  \version 3.0
-  \date    Tuesday 16 August 2005 9:56:00 am
-  \author  Original Hans Melis, ported to PHP5 by Tom Couwberghs
-*/
-
-include_once( 'kernel/common/i18n.php' );
-
-class SckEnhancedSelectionType extends eZDataType
+class EnhancedSelectionType extends eZDataType
 {
-    const DATATYPESTRING = 'sckenhancedselection';
+    const DATATYPESTRING = 'enhancedselection';
     const CLASS_STORAGE_XML = 'data_text5';
 
-    function SckEnhancedSelectionType()
+    function EnhancedSelectionType()
     {
         $this->eZDataType( self::DATATYPESTRING,
-                           ezpI18n::tr( 'extension/sckenhancedselection/datatypes', 'Enhanced Selection 2', 'Datatype name' ),
+                           ezpI18n::tr( 'extension/enhancedselection/datatypes', 'Enhanced Selection', 'Datatype name' ),
                            array( 'serialize_supported' => true,
                                   'object_serialize_map' => array( 'data_text' => 'selection' )
                                 )
@@ -48,23 +21,7 @@ class SckEnhancedSelectionType extends eZDataType
 
     function validateClassAttributeHTTPInput( $http, $base, $classAttribute )
     {
-        $id = $classAttribute->attribute( 'id' );
-        $queryName = join( '_', array( $base, 'sckenhancedselection_query', $id ) );
-
-        if( $http->hasPostvariable( $queryName ) )
-        {
-            $query = trim( $http->postVariable( $queryName ) );
-
-            if( !empty( $query ) )
-            {
-                if( $this->isDbQueryValid( $query ) !== true )
-                {
-                    return eZInputValidator::STATE_INVALID;
-                }
-            }
-        }
-
-        return eZInputValidator::STATE_ACCEPTED;
+        return eZInputValidator::STATE_ACCEPTED; 
     }
 
     function fetchClassAttributeHTTPInput( $http, $base, $classAttribute )
@@ -72,15 +29,13 @@ class SckEnhancedSelectionType extends eZDataType
         $content = $classAttribute->content();
         $id = $classAttribute->attribute( 'id' );
 
-        $idArrayName = join( '_', array( $base, 'sckenhancedselection_id', $id ) );
-        $nameArrayName = join( '_', array( $base, 'sckenhancedselection_name', $id ) );
-        $identifierArrayName = join( '_', array( $base, 'sckenhancedselection_identifier', $id ) );
-        $priorityArrayName = join( '_', array( $base, 'sckenhancedselection_priority', $id ) );
+        $idArrayName = join( '_', array( $base, 'enhancedselection_id', $id ) );
+        $nameArrayName = join( '_', array( $base, 'enhancedselection_name', $id ) );
+        $identifierArrayName = join( '_', array( $base, 'enhancedselection_identifier', $id ) );
+        $priorityArrayName = join( '_', array( $base, 'enhancedselection_priority', $id ) );
 
-        $multiSelectName = join( '_', array( $base, 'sckenhancedselection_multi', $id ) );
-        $delimiterName = join( '_', array( $base, 'sckenhancedselection_delimiter', $id ) );
-
-        $queryName = join( '_', array( $base, 'sckenhancedselection_query', $id ) );
+        $multiSelectName = join( '_', array( $base, 'enhancedselection_multi', $id ) );
+        $delimiterName = join( '_', array( $base, 'enhancedselection_delimiter', $id ) );
 
         if( $http->hasPostVariable( $idArrayName ) )
         {
@@ -119,11 +74,6 @@ class SckEnhancedSelectionType extends eZDataType
             $content['delimiter'] = $http->postVariable( $delimiterName );
         }
 
-        if( $http->hasPostVariable( $queryName ) )
-        {
-            $content['query'] = trim( $http->postVariable( $queryName ) );
-        }
-
         $classAttribute->setContent( $content );
         $classAttribute->store();
 
@@ -137,26 +87,12 @@ class SckEnhancedSelectionType extends eZDataType
 
         $this->xmlToClassContent( $xmlString, $content, $classAttribute );
 
-        $content['db_options'] = $this->getDbOptions( $content );
-
-        $queryName = join( '_', array( 'ContentClass_sckenhancedselection_query', $classAttribute->attribute( 'id' ) ) );
-        $http = eZHTTPTool::instance();
-
-        if( empty( $content['query'] ) and
-            $http->hasPostVariable( $queryName ) )
-        {
-            $query = $http->postVariable( $queryName );
-            $content['query'] = $query;
-        }
-
         return $content;
     }
 
     function storeClassAttribute( $classAttribute, $version )
     {
         $content = $classAttribute->content();
-
-        unset( $content['db_options'] ); // Make sure this can never slip into the database
 
         $xmlString = $this->classContentToXml( $content, $classAttribute );
 
@@ -172,7 +108,7 @@ class SckEnhancedSelectionType extends eZDataType
         $customActionVarName = "CustomActionButton";
         $customActionKeyName = "{$id}_{$action}";
 
-        $idArrayName = join( '_', array( $base, 'sckenhancedselection_id', $id ) );
+        $idArrayName = join( '_', array( $base, 'enhancedselection_id', $id ) );
         $idArray = array();
 
         if( $http->hasPostVariable( $idArrayName ) )
@@ -202,7 +138,7 @@ class SckEnhancedSelectionType extends eZDataType
 
             case 'remove_optionlist':
             {
-                $removeArrayName = join( '_', array( $base, "sckenhancedselection_remove", $id ) );
+                $removeArrayName = join( '_', array( $base, "enhancedselection_remove", $id ) );
 
                 if( $http->hasPostVariable( $removeArrayName ) )
                 {
@@ -239,7 +175,7 @@ class SckEnhancedSelectionType extends eZDataType
 
             case 'sort_optionlist':
             {
-                $sortName = join( '_', array( $base, 'sckenhancedselection_sort_order', $id ) );
+                $sortName = join( '_', array( $base, 'enhancedselection_sort_order', $id ) );
 
                 if( $http->hasPostVariable( $sortName ) )
                 {
@@ -276,7 +212,7 @@ class SckEnhancedSelectionType extends eZDataType
                         $priorityArray = array();
                         if( $type == 'prior' )
                         {
-                            $priorityArray = $http->postVariable( join( '_', array( $base, 'sckenhancedselection_priority', $id ) ) );
+                            $priorityArray = $http->postVariable( join( '_', array( $base, 'enhancedselection_priority', $id ) ) );
                         }
 
                         foreach( array_keys( $currentOptions ) as $key )
@@ -314,7 +250,7 @@ class SckEnhancedSelectionType extends eZDataType
                     }
                     else
                     {
-                        eZDebug::writeError( "Unknown sort value. Please use the form type_order (ex. alpha_asc)", "SckEnhancedSelectionType" );
+                        eZDebug::writeError( "Unknown sort value. Please use the form type_order (ex. alpha_asc)", "EnhancedSelectionType" );
                     }
                 }
 
@@ -322,7 +258,7 @@ class SckEnhancedSelectionType extends eZDataType
 
             default:
             {
-                eZDebug::writeError( "Unknown class HTTP action: $action", "SckEnhancedSelectionType" );
+                eZDebug::writeError( "Unknown class HTTP action: $action", "EnhancedSelectionType" );
             }
         }
 
@@ -349,7 +285,7 @@ class SckEnhancedSelectionType extends eZDataType
         $classContent = $contentObjectAttribute->classContent();
         $content = $contentObjectAttribute->content();
 
-        $selectionName = join( '_', array( $base, 'sckenhancedselection_selection', $id ) );
+        $selectionName = join( '_', array( $base, 'enhancedselection_selection', $id ) );
 
         if( $http->hasPostVariable( $selectionName ) )
         {
@@ -442,10 +378,10 @@ class SckEnhancedSelectionType extends eZDataType
         $content = $objectAttribute->content();
         $nameArray = array();
 
-        $selectionName = join( '_', array( $base, 'sckenhancedselection_selection', $id ) );
+        $selectionName = join( '_', array( $base, 'enhancedselection_selection', $id ) );
         $selection = $http->postVariable( $selectionName );
         $collectedField  = 'identifier';
-        if ( strtolower( eZINI::instance( 'enhancedselection2.ini' )->variable( 'Settings', 'UseNameFieldAsCollectedValue' ) ) == 'true' )
+        if ( strtolower( eZINI::instance( 'enhancedselection.ini' )->variable( 'Settings', 'UseNameFieldAsCollectedValue' ) ) == 'true' )
         {
             $collectedField  = 'name';
         }
@@ -457,12 +393,6 @@ class SckEnhancedSelectionType extends eZDataType
             if( count( $selection ) > 0 )
             {
                 $options = $classContent['options'];
-
-                if( isset( $classContent['db_options'] ) and count( $classContent['db_options'] ) > 0 )
-                {
-                    unset( $options );
-                    $options = $classContent['db_options'];
-                }
 
                 foreach( $options as $option )
                 {
@@ -509,12 +439,6 @@ class SckEnhancedSelectionType extends eZDataType
             $metaDataArray = array();
             $options = $classContent['options'];
 
-            if( isset( $classContent['db_options'] ) and count( $classContent['db_options'] ) > 0 )
-            {
-                unset( $options );
-                $options = $classContent['db_options'];
-            }
-
             foreach( $options as $option )
             {
                 if( in_array( $option['identifier'], $content ) )
@@ -544,12 +468,6 @@ class SckEnhancedSelectionType extends eZDataType
         if( count( $content ) > 0 )
         {
             $options = $classContent['options'];
-
-            if( isset( $classContent['db_options'] ) and count( $classContent['db_options'] ) > 0 )
-            {
-                unset( $options );
-                $options = $classContent['db_options'];
-            }
 
             foreach( $options as $option )
             {
@@ -636,13 +554,7 @@ class SckEnhancedSelectionType extends eZDataType
         $delimiterElement->appendChild( $dom->createCDATASection( $content['delimiter'] ) );
         $attributeParametersNode->appendChild( $delimiterElement );
         $attributeParametersNode->appendChild( $dom->createElement( 'multiselect', $content['is_multiselect'] ) );
-        foreach ( $content['query'] as $queryLang => $queryValue )
-        {
-            $queryElement = $dom->createElement('query');
-            $queryElement->setAttribute( 'lang', $queryLang );
-            $queryElement->appendChild( $dom->createCDATASection( $queryValue ) );
-            $attributeParametersNode->appendChild( $queryElement );
-        }
+        
         $attributeParametersNode->appendChild( $optionsNode );
 
         unset( $optionsNode );
@@ -656,22 +568,14 @@ class SckEnhancedSelectionType extends eZDataType
         
         $delimiter = $attributeParametersNode->getElementsByTagName( 'delimiter' )->item(0)->nodeValue;
         $multiselect = $attributeParametersNode->getElementsByTagName( 'multiselect' )->item(0)->textContent;
-        $query = array();
-        foreach( $attributeParametersNode->getElementsByTagName( 'query' ) as $queryNode )
-        {
-            $query[$queryNode->hasAttribute( 'lang' ) ? $queryNode->getAttribute( 'lang' ) : $initialLanguage ] = $queryNode->nodeValue;
-        }
 
         $content['delimiter'] = $delimiter !== false ? $delimiter : '';
         $content['is_multiselect'] = $multiselect !== false ? intval( $multiselect ) : 0;
-        $content['query'] = $query !== false ? $query : array();
         $content['options'] = array();
 
         $optionsNode = $attributeParametersNode->getElementsByTagName( 'options' )->item(0);
 
         $dom = $optionsNode->ownerDocument;
-
-
 
         if( $optionsNode instanceof DomElement && $optionsNode->hasChildNodes() === true )
         {
@@ -683,7 +587,7 @@ class SckEnhancedSelectionType extends eZDataType
                 {
                 $name = array();
                 $nameNodeList = $child->getElementsByTagName( 'name' );
-                if ( $nameNodeList->length == 0 ) //Used only for backcompatibility with pre-multilanguage release content
+                if ( $nameNodeList->length == 0 ) //Used only for backwards compatibility with pre-multilanguage release content
                 {
                     $name[$initialLanguage] = $child->getAttribute( 'name' );
                 }
@@ -717,12 +621,6 @@ class SckEnhancedSelectionType extends eZDataType
      * Convert a content given as an associative array to an XML for our class storage
      * @param array $content
      * @param eZContentClassAttribute $classAttribute 
-     * @param [optional]bool $multiLanguage   If set to true, the content array contains all language for its "name" 
-     *                                        and "query" fields (as an associative array : 'language code' => 'value'),
-     *                                        the previously stored content is ignored and replaced by our content array
-     *                                        ; if set to false (default), content only contains current language for 
-     *                                        this fields, content array is merged to the previously stored content, 
-     *                                        allowing to keep other translation stored.
      * @return string
      */
     function classContentToXml( $content, $classAttribute, $multiLanguage = false )
@@ -794,26 +692,6 @@ class SckEnhancedSelectionType extends eZDataType
             $delimiterElement = $doc->createElement('delimiter');
             $delimiterElement->appendChild( $doc->createCDATASection( $content['delimiter'] ) );
             $root->appendChild( $delimiterElement );
-        }
-
-        // DB Query
-        if( isset( $content['query'] ) )
-        {
-            if ( $multiLanguage )
-            {
-                $queryByLangList = $content['query'];
-            }
-            else
-            {
-                $queryByLangList = ( isset( $previousMultiLanguageContent['query'] ) && is_array( $previousMultiLanguageContent['query'] ) ) ? array_merge( $previousMultiLanguageContent['query'], array( $currentLocale => $content['query'] ) ) : array( $currentLocale => $content['query'] );
-            }
-            foreach( $queryByLangList as $queryLang => $queryValue )
-            {
-                $queryElement = $doc->createElement('query');
-                $queryElement->setAttribute( 'lang', $queryLang );
-                $queryElement->appendChild( $doc->createCDATASection( $queryValue ) );
-                $root->appendChild( $queryElement );
-            }
         }
 
         $doc->appendChild( $root );
@@ -910,41 +788,12 @@ class SckEnhancedSelectionType extends eZDataType
                 {
                     $content['delimiter'] = $delimiterNode->nodeValue;
                 }
-
-                $content['query'] = '';
-                $initialLocaleQuery = '';
-                $foundCurrentLocale = false;
-                foreach( $dom->getElementsByTagName( 'query' ) as $queryNode )
-                {
-                    if ( $multiLanguage )
-                    {
-                        $content['query'][$queryNode->hasAttribute( 'lang' ) ? $queryNode->getAttribute( 'lang' ) : $initialLocale] = $queryNode->nodeValue;
-                    }
-                    else
-                    {
-                        if ( $queryNode->getAttribute( 'lang' ) == $currentLocale )
-                        {
-                            $foundCurrentLocale = true;
-                            $content['query'] = $queryNode->nodeValue;
-                            break;
-                        }
-                        if ( !$queryNode->hasAttribute( 'lang' ) || $queryNode->getAttribute( 'lang' ) == $initialLocale )
-                        {
-                            $initialLocaleQuery = $queryNode->nodeValue;
-                        }
-                    }
-                }
-                if ( !$multiLanguage && !$foundCurrentLocale )
-                {
-                    $content['query'] = $initialLocaleQuery;
-                }
             }
             else
             {
                 $content['options'] = array();
                 $content['is_multiselect'] = 0;
                 $content['delimiter'] = '';
-                $content['query'] = '';
             }
         }
         else
@@ -952,7 +801,6 @@ class SckEnhancedSelectionType extends eZDataType
             $content['options'] = array();
             $content['is_multiselect'] = 0;
             $content['delimiter'] = '';
-            $content['query'] = '';
         }
     }
 
@@ -1039,51 +887,6 @@ class SckEnhancedSelectionType extends eZDataType
         }
     }
 
-    function isDbQueryValid( $sql )
-    {
-        $db = eZDB::instance();
-        $isValid = false;
-
-        $res = $db->arrayQuery( $sql, array( 'limit' => 1 ) );
-
-        if( is_array( $res ) and count( $res ) == 1 )
-        {
-            if( isset( $res[0]['name'] ) and isset( $res[0]['identifier'] ) )
-            {
-                $isValid = true;
-            }
-        }
-
-        return $isValid;
-    }
-
-    function getDbOptions( $classContent )
-    {
-        $ret = array();
-
-        if( isset( $classContent['query'] ) and
-            !empty( $classContent['query'] ) and
-            $this->isDbQueryValid( $classContent['query'] ) === true )
-        {
-            $db = eZDB::instance();
-            $res = $db->arrayQuery( $classContent['query'] );
-
-            if( is_array( $res ) and count( $res ) > 0 )
-            {
-                if( $classContent['is_multiselect'] == 0 )
-                {
-                    $ret = array_merge( array( array( 'name' => '', 'identifier' => '' ) ), $res );
-                }
-                else
-                {
-                    $ret = $res;
-                }
-            }
-        }
-
-        return $ret;
-    }
-
     function validateAttributeHTTPInput( $http, $base, $contentObjectAttribute, $isInformationCollection = false )
     {
         $id = $contentObjectAttribute->attribute( 'id' );
@@ -1094,7 +897,7 @@ class SckEnhancedSelectionType extends eZDataType
 
         $isRequired = $contentObjectAttribute->validateIsRequired();
 
-        $selectionName = join( '_', array( $base, 'sckenhancedselection_selection', $id ) );
+        $selectionName = join( '_', array( $base, 'enhancedselection_selection', $id ) );
 
         if( $http->hasPostVariable( $selectionName ) )
         {
@@ -1107,7 +910,7 @@ class SckEnhancedSelectionType extends eZDataType
                     case $isRequired === true and count( $selection ) == 0:
                     case $isRequired === true and count( $selection ) == 1 and empty( $selection[0] ):
                     {
-                        $contentObjectAttribute->setValidationError( ezpI18n::tr( 'extension/sckenhancedselection/datatypes',
+                        $contentObjectAttribute->setValidationError( ezpI18n::tr( 'extension/enhancedselection/datatypes',
                                                                              'This is a required field.' )
                                                                    );
                         return eZInputValidator::STATE_INVALID;
@@ -1119,13 +922,13 @@ class SckEnhancedSelectionType extends eZDataType
         {
             if( $infoCollectionCheck === true and $isRequired === true and $classContent['is_multiselect'] == 1 )
             {
-                $contentObjectAttribute->setValidationError( ezpI18n::tr( 'extension/sckenhancedselection/datatypes',
+                $contentObjectAttribute->setValidationError( ezpI18n::tr( 'extension/enhancedselection/datatypes',
                                                                      'This is a required field.' )
                                                            );
             }
             else if( $infoCollectionCheck === true and $isRequired === true )
             {
-                $contentObjectAttribute->setValidationError( ezpI18n::tr( 'extension/sckenhancedselection/datatypes',
+                $contentObjectAttribute->setValidationError( ezpI18n::tr( 'extension/enhancedselection/datatypes',
                                                                      'No POST variable. Please check your configuration.' )
                                                            );
             }
@@ -1197,5 +1000,5 @@ class SckEnhancedSelectionType extends eZDataType
     }
 }
 
-eZDataType::register( SckEnhancedSelectionType::DATATYPESTRING, "sckenhancedselectiontype" );
+eZDataType::register( EnhancedSelectionType::DATATYPESTRING, "enhancedselectiontype" );
 ?>
